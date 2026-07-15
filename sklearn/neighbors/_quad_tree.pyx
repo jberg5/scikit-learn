@@ -78,8 +78,13 @@ cdef class _QuadTree:
 
     def build_tree(self, X):
         """Build a tree from an array of points X."""
+        # No-op when X is already float32 and C-contiguous (the case for the
+        # Barnes-Hut caller), but required so that the typed memoryview below
+        # can be created from f64/list/noncontiguous inputs too.
+        X = np.asarray(X, dtype=np.float32, order="C")
         cdef:
             int i
+            const float32_t[:, :] X_view = X
             float32_t[3] pt
             float32_t[3] min_bounds, max_bounds
 
@@ -107,7 +112,7 @@ cdef class _QuadTree:
 
         for i in range(n_samples):
             for j in range(self.n_dimensions):
-                pt[j] = X[i, j]
+                pt[j] = X_view[i, j]
             self.insert_point(pt, i)
 
         # Shrink the cells array to reduce memory usage
